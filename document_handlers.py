@@ -289,7 +289,7 @@ def handle_internship_certificate():
     # Step 1: Collect information
     if st.session_state.form_step == 1:
         with st.form("internship_offer_form"):
-            name = st.text_input("Intern Name", value=metadata.get('intern', ''), placeholder="John Doe")
+            name = st.text_input("Intern Name", value=metadata.get('intern', ''))
 
             default_position = metadata.get("position", "")
             json_path = "roles.json"
@@ -631,7 +631,7 @@ def handle_internship_offer():
         with st.form("internship_offer_form"):
             date = st.date_input("Offer Date", value=metadata.get('date', default_date))
 
-            intern_name = st.text_input("Name", value=default_name, placeholder="Zain Lo")
+            intern_name = st.text_input("Name", value=default_name)
             json_path = "roles.json"
             try:
                 with open(json_path, "r") as f:
@@ -1313,7 +1313,7 @@ def handle_contract():
         with st.form("contract_form"):
             date = st.date_input("Contract Date", value=default_date)
             client_company_name = st.text_input("Client Company Name", value=default_client_company_name)
-            client_name = st.text_input("Client Name", value=default_name, placeholder="Jon Lain")
+            client_name = st.text_input("Client Name", value=default_name)
             client_company_address = st.text_area("Client Company Address", value=default_client_address)
             contract_end = st.date_input("Contract End Date", default_contract_end)
 
@@ -3835,7 +3835,7 @@ def handle_proposal():
             name = st.text_input("Client Name", value=default_name)
             company = st.text_input("Company Name", value=default_company_name)
             email = st.text_input("Email", value=default_email)
-            phone = st.text_input("Phone", value=default_phone, placeholder="+1 234 5678")
+            phone = st.text_input("Phone", value=default_phone)
             countries = sorted([country.name for country in pycountry.countries])
             country = st.selectbox("Select Country", countries)
             proposal_date = st.date_input("Proposal Date", value=default_proposal_date)
