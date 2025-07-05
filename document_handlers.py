@@ -3804,6 +3804,516 @@ def align_text_fixed_width(text, total_char_width=12, alignment='center'):
 
 
 
+# def handle_proposal():
+#     st.title("📄 Proposal Form")
+#     regenerate_data = st.session_state.get('regenerate_data', {})
+#     is_regeneration = regenerate_data.get('source') == 'history' and regenerate_data.get('doc_type') == "Proposal"
+#     metadata = regenerate_data.get('metadata', {})
+#
+#     default_date = datetime.strptime(
+#         metadata.get("date", datetime.now().strftime('%d-%m-%Y')), '%d-%m-%Y').date()
+#     default_name = metadata.get("client_name", "")
+#     default_company_name = metadata.get("company_name", "")
+#     default_email = metadata.get("email", "")
+#     default_phone = metadata.get("phone", "")
+#     default_country = metadata.get("country", "")
+#     default_client_address = metadata.get("client_address", "")
+#     default_proposal_date = datetime.strptime(
+#         metadata.get("proposal_date", datetime.now().strftime('%d-%m-%Y')), '%d-%m-%Y').date()
+#
+#     st.session_state.setdefault("proposal_data", {})
+#     st.session_state.setdefault("proposal_form_step", 1)
+#     space_ = " "
+#
+#     all_templates = get_proposal_template_details(firestore_db)
+#     folder_paths = fetch_proposal_templates_to_temp_dir(firestore_db, bucket)
+#
+#     # Step 1: Basic Information
+#     if st.session_state.proposal_form_step == 1:
+#         with st.form("proposal_form_step1"):
+#             st.subheader("Client Information")
+#             name = st.text_input("Client Name", value=default_name)
+#             company = st.text_input("Company Name", value=default_company_name)
+#             email = st.text_input("Email", value=default_email)
+#             phone = st.text_input("Phone", value=default_phone)
+#             countries = sorted([country.name for country in pycountry.countries])
+#             country = st.selectbox("Select Country", countries)
+#             proposal_date = st.date_input("Proposal Date", value=default_proposal_date)
+#
+#             if st.form_submit_button("Next: Select Cover Page"):
+#                 st.session_state.proposal_data = {
+#                     "client_name": name,
+#                     "company_name": company,
+#                     "email": email,
+#                     "phone": phone,
+#                     "country": country,
+#                     "proposal_date": proposal_date.strftime("%B %d, %Y")
+#                 }
+#                 st.session_state.proposal_form_step = 2
+#                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
+#
+#     # Step 2: Cover Page Selection
+#     elif st.session_state.proposal_form_step == 2:
+#         st.subheader("Select Cover Page")
+#         st.button("← Back", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 1))
+#
+#         cover_templates = [tpl for tpl in all_templates if tpl["proposal_section_type"] == "cover_page"]
+#         cover_options = {
+#             tpl["pdf_name"] or tpl["original_name"]: tpl for tpl in cover_templates
+#         }
+#
+#         if not cover_options:
+#             st.error("No valid cover templates available. Cannot proceed.")
+#             st.stop()
+#
+#         col1, col2 = st.columns([5, 1])
+#         with col1:
+#             selected_cover_name = st.selectbox(
+#                 "Choose a cover page style:",
+#                 options=list(cover_options.keys()),
+#                 index=0,
+#                 key="cover_template_select"
+#             )
+#             selected_template = cover_options[selected_cover_name]
+#
+#             st.subheader("Template Details")
+#             st.json({
+#                 "Name": selected_template["name"],
+#                 "Original Name": selected_template["original_name"],
+#                 "File Type": selected_template["file_type"],
+#                 "Size (KB)": selected_template["size_kb"],
+#                 "Upload Date": selected_template["upload_date"],
+#                 "Pages": selected_template["num_pages"],
+#                 "Description": selected_template["description"],
+#                 "Order Number": selected_template["order_number"],
+#                 "Active": selected_template["is_active"]
+#             })
+#
+#             template_path = fetch_path_from_temp_dir("cover_page", selected_template, folder_paths)
+#
+#             if not template_path:
+#                 st.warning("Cover page template file not found.")
+#                 return
+#
+#             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_img:
+#                 temp_img_path = temp_img.name
+#
+#             replace_pdf_placeholders(
+#                 input_path=template_path,
+#                 output_path=temp_img_path,
+#                 replacements={
+#                     "{ client_name }": f"{st.session_state.proposal_data['client_name']}",
+#                     "{ client_email }": f"{st.session_state.proposal_data['email']}",
+#                     "{ client_phone }": f"{st.session_state.proposal_data['phone']}",
+#                     "{ client_country }": f"{st.session_state.proposal_data['country']}",
+#                     "{ date }": f" {st.session_state.proposal_data['proposal_date']}"
+#                 },
+#                 y_offset=25
+#             )
+#
+#             if os.path.exists(temp_img_path):
+#                 pdf_view(temp_img_path)
+#             else:
+#                 st.warning("Preview not available")
+#
+#         with st.form("proposal_form_step2"):
+#             if st.form_submit_button("Next: Select Table of Contents"):
+#                 st.session_state.proposal_data["cover_template"] = temp_img_path
+#                 st.session_state.proposal_form_step = 3
+#                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
+#
+#     # Step 3: Table of Contents Selection
+#     elif st.session_state.proposal_form_step == 3:
+#         st.subheader("Select Table of Contents")
+#         st.button("← Back", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 2))
+#
+#         toc_templates = [tpl for tpl in all_templates if tpl["proposal_section_type"] == "table_of_contents"]
+#         toc_options = {
+#             tpl["pdf_name"] or tpl["original_name"]: tpl for tpl in toc_templates
+#         }
+#
+#         if not toc_options:
+#             st.error("No valid table of contents templates available.")
+#             st.stop()
+#
+#         col1, col2 = st.columns([5, 1])
+#         with col1:
+#             selected_toc_name = st.selectbox(
+#                 "Choose a table of contents style:",
+#                 options=list(toc_options.keys()),
+#                 index=0,
+#                 key="toc_template_select"
+#             )
+#             selected_template = toc_options[selected_toc_name]
+#
+#             st.subheader("Template Details")
+#             st.json({
+#                 "Name": selected_template["name"],
+#                 "Original Name": selected_template["original_name"],
+#                 "File Type": selected_template["file_type"],
+#                 "Size (KB)": selected_template["size_kb"],
+#                 "Upload Date": selected_template["upload_date"],
+#                 "Pages": selected_template["num_pages"],
+#                 "Description": selected_template["description"],
+#                 "Order Number": selected_template["order_number"],
+#                 "Active": selected_template["is_active"]
+#             })
+#
+#             template_path = fetch_path_from_temp_dir("table_of_contents", selected_template, folder_paths)
+#
+#             if not template_path:
+#                 st.warning("Table of contents template file not found.")
+#                 return
+#
+#             # with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_toc:
+#             #     temp_toc_path = temp_toc.name
+#
+#             # Apply any necessary modifications to the TOC template
+#             # (Add your modification logic here if needed)
+#
+#             if os.path.exists(template_path):
+#                 pdf_view(template_path)
+#             else:
+#                 st.warning("Preview not available")
+#
+#         with st.form("proposal_form_step3"):
+#             if st.form_submit_button("Next: Select Pages 3-6"):
+#                 st.session_state.proposal_data["table_of_contents"] = template_path
+#                 st.session_state.proposal_form_step = 4
+#                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
+#
+#     # Step 4: Pages 3-6 Selection
+#     elif st.session_state.proposal_form_step == 4:
+#         st.subheader("Select Pages 3-6")
+#         st.button("← Back", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 3))
+#
+#         p3_p6_templates = [tpl for tpl in all_templates if tpl["proposal_section_type"] == "page_3_6"]
+#         p3_p6_options = {
+#             tpl["pdf_name"] or tpl["original_name"]: tpl for tpl in p3_p6_templates
+#         }
+#
+#         if not p3_p6_options:
+#             st.error("No valid page 3-6 templates available.")
+#             st.stop()
+#
+#         col1, col2 = st.columns([5, 1])
+#         with col1:
+#             selected_p3_p6_name = st.selectbox(
+#                 "Choose pages 3-6 style:",
+#                 options=list(p3_p6_options.keys()),
+#                 index=0,
+#                 key="p3_p6_template_select"
+#             )
+#             selected_template = p3_p6_options[selected_p3_p6_name]
+#
+#             st.subheader("Template Details")
+#             st.json({
+#                 "Name": selected_template["name"],
+#                 "Original Name": selected_template["original_name"],
+#                 "File Type": selected_template["file_type"],
+#                 "Size (KB)": selected_template["size_kb"],
+#                 "Upload Date": selected_template["upload_date"],
+#                 "Pages": selected_template["num_pages"],
+#                 "Description": selected_template["description"],
+#                 "Order Number": selected_template["order_number"],
+#                 "Active": selected_template["is_active"]
+#             })
+#
+#             template_path = fetch_path_from_temp_dir("page_3_6", selected_template, folder_paths)
+#
+#             if not template_path:
+#                 st.warning("Pages 3-6 template file not found.")
+#                 return
+#
+#             # with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_p3_p6:
+#             #     temp_p3_p6_path = temp_p3_p6.name
+#
+#             # Apply any necessary modifications to the pages 3-6 template
+#             # (Add your modification logic here if needed)
+#
+#             if os.path.exists(template_path):
+#                 pdf_view(template_path)
+#             else:
+#                 st.warning("Preview not available")
+#
+#         with st.form("proposal_form_step4"):
+#             if st.form_submit_button("Next: Select Business Requirements"):
+#                 st.session_state.proposal_data["p3_p6_template"] = template_path  # Storing as list for consistency
+#                 st.session_state.proposal_form_step = 5
+#                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
+#
+#     # Step 5: Business Requirements Selection
+#     elif st.session_state.proposal_form_step == 5:
+#         st.subheader("Select Business Requirements Page")
+#         st.button("← Back", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 4))
+#
+#         br_templates = [tpl for tpl in all_templates if tpl["proposal_section_type"] == "business_requirement"]
+#         br_options = {
+#             tpl["pdf_name"] or tpl["original_name"]: tpl for tpl in br_templates
+#         }
+#
+#         if not br_options:
+#             st.error("No valid business requirements templates available.")
+#             st.stop()
+#
+#         col1, col2 = st.columns([5, 1])
+#         with col1:
+#             selected_br_name = st.selectbox(
+#                 "Choose a business requirements style:",
+#                 options=list(br_options.keys()),
+#                 index=0,
+#                 key="br_template_select"
+#             )
+#             selected_template = br_options[selected_br_name]
+#
+#             st.subheader("Template Details")
+#             st.json({
+#                 "Name": selected_template["name"],
+#                 "Original Name": selected_template["original_name"],
+#                 "File Type": selected_template["file_type"],
+#                 "Size (KB)": selected_template["size_kb"],
+#                 "Upload Date": selected_template["upload_date"],
+#                 "Pages": selected_template["num_pages"],
+#                 "Description": selected_template["description"],
+#                 "Order Number": selected_template["order_number"],
+#                 "Active": selected_template["is_active"]
+#             })
+#
+#             template_path = fetch_path_from_temp_dir("business_requirement", selected_template, folder_paths)
+#
+#             if not template_path:
+#                 st.warning("Business requirements template file not found.")
+#                 return
+#
+#             # with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_br:
+#             #     temp_br_path = temp_br.name
+#
+#             # Apply modifications to BR template
+#             the_name = st.session_state.proposal_data['client_name']
+#             if len(the_name) > 14:
+#                 new_text = the_name
+#             elif len(the_name) < 14:
+#                 if len(the_name) < 8:
+#                     lenght_dif = 11 - len(the_name)
+#                     new_text = f"{space_ * lenght_dif}{the_name}"
+#                 else:
+#                     lenght_dif = 14 - len(the_name)
+#                     new_text = f"{space_ * lenght_dif}{the_name}"
+#             else:
+#                 new_text = the_name
+#
+#             modifications = {
+#                 "{ client_name }": (f"{new_text}", 0, 7),
+#                 "{ date }": (f"{st.session_state.proposal_data['proposal_date']}", -30, 0)
+#             }
+#             editor = EditTextFile(template_path)
+#             editor.modify_pdf_fields(temp_br_path, modifications)
+#
+#             if os.path.exists(temp_br_path):
+#                 pdf_view(temp_br_path)
+#             else:
+#                 st.warning("Preview not available")
+#
+#         with st.form("proposal_form_step5"):
+#             if st.form_submit_button("Next: Select Testimonials"):
+#                 st.session_state.proposal_data["br_template"] = temp_br_path
+#                 st.session_state.proposal_form_step = 6
+#                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
+#
+#     # Step 6: Testimonials Selection
+#     elif st.session_state.proposal_form_step == 6:
+#         st.subheader("Select Testimonials Page")
+#         st.button("← Back", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 5))
+#
+#         testimonial_templates = [tpl for tpl in all_templates if tpl["proposal_section_type"] == "testimonials"]
+#         testimonial_options = {
+#             tpl["pdf_name"] or tpl["original_name"]: tpl for tpl in testimonial_templates
+#         }
+#
+#         if not testimonial_options:
+#             st.error("No valid testimonial templates available.")
+#             st.stop()
+#
+#         col1, col2 = st.columns([5, 1])
+#         with col1:
+#             selected_testimonial_name = st.selectbox(
+#                 "Choose a testimonials style:",
+#                 options=list(testimonial_options.keys()),
+#                 index=0,
+#                 key="testimonial_template_select"
+#             )
+#             selected_template = testimonial_options[selected_testimonial_name]
+#
+#             st.subheader("Template Details")
+#             st.json({
+#                 "Name": selected_template["name"],
+#                 "Original Name": selected_template["original_name"],
+#                 "File Type": selected_template["file_type"],
+#                 "Size (KB)": selected_template["size_kb"],
+#                 "Upload Date": selected_template["upload_date"],
+#                 "Pages": selected_template["num_pages"],
+#                 "Description": selected_template["description"],
+#                 "Order Number": selected_template["order_number"],
+#                 "Active": selected_template["is_active"]
+#             })
+#
+#             template_path = fetch_path_from_temp_dir("testimonials", selected_template, folder_paths)
+#
+#             if not template_path:
+#                 st.warning("Testimonials template file not found.")
+#                 return
+#
+#             # with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_testimonial:
+#             #     temp_testimonial_path = temp_testimonial.name
+#
+#             # Apply any necessary modifications to the testimonials template
+#             # (Add your modification logic here if needed)
+#
+#             if os.path.exists(template_path):
+#                 pdf_view(template_path)
+#             else:
+#                 st.warning("Preview not available")
+#
+#         with st.form("proposal_form_step6"):
+#             if st.form_submit_button("Next: Preview Proposal"):
+#                 st.session_state.proposal_data["testimonials"] = template_path
+#                 st.session_state.proposal_form_step = 7
+#                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
+#
+#     # Step 7: Final Preview and Download
+#     elif st.session_state.proposal_form_step == 7:
+#         st.subheader("📄 Final Proposal Preview")
+#         st.button("← Back", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 6))
+#
+#         st.markdown("""
+#             <style>
+#                 .download-col > div {
+#                     text-align: center;
+#                 }
+#             </style>
+#         """, unsafe_allow_html=True)
+#
+#         # Proposal metadata summary
+#         st.markdown("#### 🧾 Proposal Details")
+#         col1, col2 = st.columns(2)
+#
+#         with col1:
+#             st.write(f"**Client Name:** {st.session_state.proposal_data['client_name']}")
+#             st.write(f"**Company:** {st.session_state.proposal_data['company_name']}")
+#             st.write(f"**Email:** {st.session_state.proposal_data['email']}")
+#             st.write(f"**Phone:** {st.session_state.proposal_data['phone']}")
+#
+#         with col2:
+#             st.write(f"**Country:** {st.session_state.proposal_data['country']}")
+#             st.write(f"**Proposal Date:** {st.session_state.proposal_data['proposal_date']}")
+#
+#         st.markdown("---")
+#
+#         # Merge all selected templates
+#         merger_files = []
+#
+#         # Cover page
+#         cover = st.session_state.proposal_data.get("cover_template")
+#         if cover and os.path.exists(cover):
+#             merger_files.append(cover)
+#         else:
+#             st.info("Cover Template not available.")
+#
+#         # Table of Contents
+#         toc = st.session_state.proposal_data.get("table_of_contents")
+#         if toc and os.path.exists(toc):
+#             merger_files.append(toc)
+#         else:
+#             st.info("Table of Contents Template is unavailable.")
+#
+#         # Page 3 to 6
+#         p3_p6_list = st.session_state.proposal_data.get("p3_p6_template", [])
+#         if p3_p6_list:
+#             available_p3_p6 = [p for p in p3_p6_list if os.path.exists(p)]
+#             if available_p3_p6:
+#                 merger_files.extend(available_p3_p6)
+#             else:
+#                 st.info("Page 3 to 6 Templates are missing.")
+#         else:
+#             st.info("No Page 3 to 6 Templates found.")
+#
+#         # Business Requirement
+#         br = st.session_state.proposal_data.get("br_template")
+#         if br and os.path.exists(br):
+#             merger_files.append(br)
+#         else:
+#             st.info("Business Requirement Template unavailable.")
+#
+#         # Testimonials
+#         testimonials = st.session_state.proposal_data.get("testimonials")
+#         if testimonials and os.path.exists(testimonials):
+#             merger_files.append(testimonials)
+#         else:
+#             st.info("Testimonial Template is unavailable.")
+#
+#         # Validate all files exist before merging
+#         for file_path in merger_files:
+#             if file_path is None:
+#                 continue
+#             if not os.path.exists(file_path):
+#                 st.error(f"File not found: {file_path}")
+#                 return
+#
+#         # Merge and preview
+#         merger = Merger(merger_files)
+#         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_merger:
+#             temp_merger_path = temp_merger.name
+#
+#         merger.merge_pdf_files(temp_merger_path)
+#
+#         # PDF Preview
+#         if os.path.exists(temp_merger_path):
+#             st.markdown("#### 📑 Preview of Merged Proposal")
+#             pdf_view(temp_merger_path)
+#         else:
+#             st.error("Merged proposal file not found.")
+#             st.stop()
+#
+#         st.markdown("---")
+#
+#         # Prepare metadata for upload
+#         file_upload_details = {
+#             "client_name": st.session_state.proposal_data['client_name'],
+#             "company_name": st.session_state.proposal_data['company_name'],
+#             "email": st.session_state.proposal_data['email'],
+#             "phone": st.session_state.proposal_data['phone'],
+#             "country": st.session_state.proposal_data['country'],
+#             "proposal_date": st.session_state.proposal_data['proposal_date'],
+#             "upload_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+#             "upload_timestamp": firestore.SERVER_TIMESTAMP,
+#         }
+#
+#         # Download section
+#         st.markdown("#### ⬇️ Download Final Proposal")
+#         download_col1, download_col2 = st.columns([2, 1], gap="medium")
+#
+#         with download_col1:
+#             default_filename = f"{st.session_state.proposal_data['client_name'].replace(' ', '_')}_Proposal.pdf"
+#
+#             if st.button("✅ Confirm and Upload Proposal"):
+#                 save_generated_file_to_firebase_2(
+#                     temp_merger_path,
+#                     "Proposal",
+#                     bucket,
+#                     "PDF",
+#                     file_upload_details
+#                 )
+#                 st.success("Now you can download the file:")
+#                 generate_download_link(temp_merger_path, default_filename, "PDF", "Proposal")
+#
+#         with download_col2:
+#             if st.button("🔁 Start Over"):
+#                 for key in ['proposal_form_step', 'proposal_data', 'selected_br']:
+#                     if key in st.session_state:
+#                         del st.session_state[key]
+#                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
+
+
 def handle_proposal():
     st.title("📄 Proposal Form")
     regenerate_data = st.session_state.get('regenerate_data', {})
@@ -3855,7 +4365,7 @@ def handle_proposal():
     # Step 2: Cover Page Selection
     elif st.session_state.proposal_form_step == 2:
         st.subheader("Select Cover Page")
-        st.button("← Back", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 1))
+        st.button("← Back to Form", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 1))
 
         cover_templates = [tpl for tpl in all_templates if tpl["proposal_section_type"] == "cover_page"]
         cover_options = {
@@ -3917,15 +4427,107 @@ def handle_proposal():
                 st.warning("Preview not available")
 
         with st.form("proposal_form_step2"):
-            if st.form_submit_button("Next: Select Table of Contents"):
+            if st.form_submit_button("Next: Select Business Requirements"):
                 st.session_state.proposal_data["cover_template"] = temp_img_path
+                st.session_state.proposal_data["cover_template_name"] = selected_template["original_name"]
                 st.session_state.proposal_form_step = 3
                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
 
-    # Step 3: Table of Contents Selection
+    # Step 3: Business Requirements Selection
     elif st.session_state.proposal_form_step == 3:
+        st.subheader("Select Business Requirements Page")
+        st.button("← Back to Cover Page", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 2))
+
+        # st.subheader("Selected Templates")
+        st.markdown("Selected Templates")
+        # st.session_state.proposal_data["cover_template_name"]
+        st.markdown(f"**Cover Template:** {st.session_state.proposal_data['cover_template_name']}")
+
+        br_templates = [tpl for tpl in all_templates if tpl["proposal_section_type"] == "business_requirement"]
+        br_options = {
+            tpl["pdf_name"] or tpl["original_name"]: tpl for tpl in br_templates
+        }
+
+        if not br_options:
+            st.error("No valid business requirements templates available.")
+            st.stop()
+
+        col1, col2 = st.columns([5, 1])
+        with col1:
+            selected_br_name = st.selectbox(
+                "Choose a business requirements style:",
+                options=list(br_options.keys()),
+                index=0,
+                key="br_template_select"
+            )
+            selected_template = br_options[selected_br_name]
+
+            st.subheader("Template Details")
+            st.json({
+                "Name": selected_template["name"],
+                "Original Name": selected_template["original_name"],
+                "File Type": selected_template["file_type"],
+                "Size (KB)": selected_template["size_kb"],
+                "Upload Date": selected_template["upload_date"],
+                "Pages": selected_template["num_pages"],
+                "Description": selected_template["description"],
+                "Order Number": selected_template["order_number"],
+                "Active": selected_template["is_active"]
+            })
+
+            template_path = fetch_path_from_temp_dir("business_requirement", selected_template, folder_paths)
+
+            if not template_path:
+                st.warning("Business requirements template file not found.")
+                return
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_br:
+                temp_br_path = temp_br.name
+
+            # Apply modifications to BR template
+            the_name = st.session_state.proposal_data['client_name']
+            if len(the_name) > 14:
+                new_text = the_name
+            elif len(the_name) < 14:
+                if len(the_name) < 8:
+                    lenght_dif = 11 - len(the_name)
+                    new_text = f"{space_ * lenght_dif}{the_name}"
+                else:
+                    lenght_dif = 14 - len(the_name)
+                    new_text = f"{space_ * lenght_dif}{the_name}"
+            else:
+                new_text = the_name
+
+            modifications = {
+                "{ client_name }": (f"{new_text}", 0, 7),
+                "{ date }": (f"{st.session_state.proposal_data['proposal_date']}", -30, 0)
+            }
+            editor = EditTextFile(template_path)
+            editor.modify_pdf_fields(temp_br_path, modifications)
+
+            if os.path.exists(temp_br_path):
+                pdf_view(temp_br_path)
+            else:
+                st.warning("Preview not available")
+
+        with st.form("proposal_form_step3"):
+            if st.form_submit_button("Next: Select Table of Contents"):
+                st.session_state.proposal_data["br_template"] = temp_br_path
+                st.session_state.proposal_data["br_template_name"] = selected_template["original_name"]
+                st.session_state.proposal_form_step = 4
+                st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
+
+
+    # Step 4: Table of Contents Selection
+    elif st.session_state.proposal_form_step == 4:
         st.subheader("Select Table of Contents")
-        st.button("← Back", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 2))
+        st.button("← Back to Business Requirements Page", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 3))
+
+        st.markdown("Selected Templates")
+        # st.session_state.proposal_data["cover_template_name"]
+        st.markdown(f"**Cover Template:** {st.session_state.proposal_data['cover_template_name']}")
+        st.markdown(f"**BR Template:** {st.session_state.proposal_data['br_template_name']}")
+
 
         toc_templates = [tpl for tpl in all_templates if tpl["proposal_section_type"] == "table_of_contents"]
         toc_options = {
@@ -3976,154 +4578,24 @@ def handle_proposal():
             else:
                 st.warning("Preview not available")
 
-        with st.form("proposal_form_step3"):
-            if st.form_submit_button("Next: Select Pages 3-6"):
-                st.session_state.proposal_data["table_of_contents"] = template_path
-                st.session_state.proposal_form_step = 4
-                st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
-
-    # Step 4: Pages 3-6 Selection
-    elif st.session_state.proposal_form_step == 4:
-        st.subheader("Select Pages 3-6")
-        st.button("← Back", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 3))
-
-        p3_p6_templates = [tpl for tpl in all_templates if tpl["proposal_section_type"] == "page_3_6"]
-        p3_p6_options = {
-            tpl["pdf_name"] or tpl["original_name"]: tpl for tpl in p3_p6_templates
-        }
-
-        if not p3_p6_options:
-            st.error("No valid page 3-6 templates available.")
-            st.stop()
-
-        col1, col2 = st.columns([5, 1])
-        with col1:
-            selected_p3_p6_name = st.selectbox(
-                "Choose pages 3-6 style:",
-                options=list(p3_p6_options.keys()),
-                index=0,
-                key="p3_p6_template_select"
-            )
-            selected_template = p3_p6_options[selected_p3_p6_name]
-
-            st.subheader("Template Details")
-            st.json({
-                "Name": selected_template["name"],
-                "Original Name": selected_template["original_name"],
-                "File Type": selected_template["file_type"],
-                "Size (KB)": selected_template["size_kb"],
-                "Upload Date": selected_template["upload_date"],
-                "Pages": selected_template["num_pages"],
-                "Description": selected_template["description"],
-                "Order Number": selected_template["order_number"],
-                "Active": selected_template["is_active"]
-            })
-
-            template_path = fetch_path_from_temp_dir("page_3_6", selected_template, folder_paths)
-
-            if not template_path:
-                st.warning("Pages 3-6 template file not found.")
-                return
-
-            # with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_p3_p6:
-            #     temp_p3_p6_path = temp_p3_p6.name
-
-            # Apply any necessary modifications to the pages 3-6 template
-            # (Add your modification logic here if needed)
-
-            if os.path.exists(template_path):
-                pdf_view(template_path)
-            else:
-                st.warning("Preview not available")
-
         with st.form("proposal_form_step4"):
-            if st.form_submit_button("Next: Select Business Requirements"):
-                st.session_state.proposal_data["p3_p6_template"] = template_path  # Storing as list for consistency
+            if st.form_submit_button("Next: Select Testimonials Page"):
+                st.session_state.proposal_data["table_of_contents"] = template_path
+                st.session_state.proposal_data["table_of_contents_name"] = selected_template["original_name"]
                 st.session_state.proposal_form_step = 5
                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
 
-    # Step 5: Business Requirements Selection
+
+    # Step 5: Testimonials Selection
     elif st.session_state.proposal_form_step == 5:
-        st.subheader("Select Business Requirements Page")
-        st.button("← Back", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 4))
-
-        br_templates = [tpl for tpl in all_templates if tpl["proposal_section_type"] == "business_requirement"]
-        br_options = {
-            tpl["pdf_name"] or tpl["original_name"]: tpl for tpl in br_templates
-        }
-
-        if not br_options:
-            st.error("No valid business requirements templates available.")
-            st.stop()
-
-        col1, col2 = st.columns([5, 1])
-        with col1:
-            selected_br_name = st.selectbox(
-                "Choose a business requirements style:",
-                options=list(br_options.keys()),
-                index=0,
-                key="br_template_select"
-            )
-            selected_template = br_options[selected_br_name]
-
-            st.subheader("Template Details")
-            st.json({
-                "Name": selected_template["name"],
-                "Original Name": selected_template["original_name"],
-                "File Type": selected_template["file_type"],
-                "Size (KB)": selected_template["size_kb"],
-                "Upload Date": selected_template["upload_date"],
-                "Pages": selected_template["num_pages"],
-                "Description": selected_template["description"],
-                "Order Number": selected_template["order_number"],
-                "Active": selected_template["is_active"]
-            })
-
-            template_path = fetch_path_from_temp_dir("business_requirement", selected_template, folder_paths)
-
-            if not template_path:
-                st.warning("Business requirements template file not found.")
-                return
-
-            # with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_br:
-            #     temp_br_path = temp_br.name
-
-            # Apply modifications to BR template
-            the_name = st.session_state.proposal_data['client_name']
-            if len(the_name) > 14:
-                new_text = the_name
-            elif len(the_name) < 14:
-                if len(the_name) < 8:
-                    lenght_dif = 11 - len(the_name)
-                    new_text = f"{space_ * lenght_dif}{the_name}"
-                else:
-                    lenght_dif = 14 - len(the_name)
-                    new_text = f"{space_ * lenght_dif}{the_name}"
-            else:
-                new_text = the_name
-
-            modifications = {
-                "{ client_name }": (f"{new_text}", 0, 7),
-                "{ date }": (f"{st.session_state.proposal_data['proposal_date']}", -30, 0)
-            }
-            editor = EditTextFile(template_path)
-            editor.modify_pdf_fields(temp_br_path, modifications)
-
-            if os.path.exists(temp_br_path):
-                pdf_view(temp_br_path)
-            else:
-                st.warning("Preview not available")
-
-        with st.form("proposal_form_step5"):
-            if st.form_submit_button("Next: Select Testimonials"):
-                st.session_state.proposal_data["br_template"] = temp_br_path
-                st.session_state.proposal_form_step = 6
-                st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
-
-    # Step 6: Testimonials Selection
-    elif st.session_state.proposal_form_step == 6:
         st.subheader("Select Testimonials Page")
-        st.button("← Back", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 5))
+        st.button("← Back to Table of Contents Page", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 4))
+
+        st.markdown("Selected Templates")
+        # st.session_state.proposal_data["cover_template_name"]
+        st.markdown(f"**Cover Template:** {st.session_state.proposal_data['cover_template_name']}")
+        st.markdown(f"**BR Template:** {st.session_state.proposal_data['br_template_name']}")
+        st.markdown(f"**Table of Content Template:** {st.session_state.proposal_data['table_of_contents_name']}")
 
         testimonial_templates = [tpl for tpl in all_templates if tpl["proposal_section_type"] == "testimonials"]
         testimonial_options = {
@@ -4174,16 +4646,100 @@ def handle_proposal():
             else:
                 st.warning("Preview not available")
 
+        with st.form("proposal_form_step5"):
+            if st.form_submit_button("Next: Select Pages 3-6"):
+                # st.session_state.proposal_data["table_of_contents"] = template_path
+                st.session_state.proposal_data["testimonials"] = template_path
+                st.session_state.proposal_data["testimonials_name"] = selected_template["original_name"]
+                st.session_state.proposal_form_step = 6
+                st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
+
+    # Step 6: Pages 3-6 Selection
+    elif st.session_state.proposal_form_step == 6:
+        st.subheader("Select Pages 3-6")
+        st.button("← Back to Testimonials Page", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 5))
+
+        st.markdown("Selected Templates")
+        # st.session_state.proposal_data["cover_template_name"]
+        st.markdown(f"**Cover Template:** {st.session_state.proposal_data['cover_template_name']}")
+        st.markdown(f"**BR Template:** {st.session_state.proposal_data['br_template_name']}")
+        st.markdown(f"**Table of Content Template:** {st.session_state.proposal_data['table_of_contents_name']}")
+        st.markdown(f"**Testimonial Template:** {st.session_state.proposal_data['testimonials_name']}")
+
+        p3_p6_templates = [tpl for tpl in all_templates if tpl["proposal_section_type"] == "page_3_6"]
+        p3_p6_options = {
+            tpl["pdf_name"] or tpl["original_name"]: tpl for tpl in p3_p6_templates
+        }
+
+        if not p3_p6_options:
+            st.error("No valid page 3-6 templates available.")
+            st.stop()
+
+        col1, col2 = st.columns([5, 1])
+        with col1:
+            selected_p3_p6_name = st.selectbox(
+                "Choose pages 3-6 style:",
+                options=list(p3_p6_options.keys()),
+                index=0,
+                key="p3_p6_template_select"
+            )
+            selected_template = p3_p6_options[selected_p3_p6_name]
+
+            st.subheader("Template Details")
+            st.json({
+                "Name": selected_template["name"],
+                "Original Name": selected_template["original_name"],
+                "File Type": selected_template["file_type"],
+                "Size (KB)": selected_template["size_kb"],
+                "Upload Date": selected_template["upload_date"],
+                "Pages": selected_template["num_pages"],
+                "Description": selected_template["description"],
+                "Order Number": selected_template["order_number"],
+                "Active": selected_template["is_active"]
+            })
+
+            template_path = fetch_path_from_temp_dir("page_3_6", selected_template, folder_paths)
+
+            if not template_path:
+                st.warning("Pages 3-6 template file not found.")
+                return
+
+            # with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_p3_p6:
+            #     temp_p3_p6_path = temp_p3_p6.name
+
+            # Apply any necessary modifications to the pages 3-6 template
+            # (Add your modification logic here if needed)
+
+            if os.path.exists(template_path):
+                pdf_view(template_path)
+            else:
+                st.warning("Preview not available")
+
         with st.form("proposal_form_step6"):
             if st.form_submit_button("Next: Preview Proposal"):
-                st.session_state.proposal_data["testimonials"] = template_path
+                st.session_state.proposal_data["p3_p6_template"] = template_path  # Storing as list for consistency
+                print(st.session_state.proposal_data["p3_p6_template"])
+                st.session_state.proposal_data["p3_p6_template_name"] = selected_template["original_name"]
                 st.session_state.proposal_form_step = 7
                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
 
+
+
     # Step 7: Final Preview and Download
     elif st.session_state.proposal_form_step == 7:
+
+
         st.subheader("📄 Final Proposal Preview")
-        st.button("← Back", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 6))
+        st.button("← Back to Pages 3-6", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 6))
+
+        st.markdown("Selected Templates")
+        # st.session_state.proposal_data["cover_template_name"]
+        st.markdown(f"**Cover Template:** {st.session_state.proposal_data['cover_template_name']}")
+        st.markdown(f"**BR Template:** {st.session_state.proposal_data['br_template_name']}")
+        st.markdown(f"**Table of Content Template:** {st.session_state.proposal_data['table_of_contents_name']}")
+        st.markdown(f"**Testimonial Template:** {st.session_state.proposal_data['testimonials_name']}")
+        st.markdown(f"**Page 3-6  Template:** {st.session_state.proposal_data['p3_p6_template_name']}")
+        st.write("PROPOSAL Metadata", st.session_state.proposal_data)
 
         st.markdown("""
             <style>
@@ -4227,15 +4783,21 @@ def handle_proposal():
             st.info("Table of Contents Template is unavailable.")
 
         # Page 3 to 6
-        p3_p6_list = st.session_state.proposal_data.get("p3_p6_template", [])
-        if p3_p6_list:
-            available_p3_p6 = [p for p in p3_p6_list if os.path.exists(p)]
-            if available_p3_p6:
-                merger_files.extend(available_p3_p6)
-            else:
-                st.info("Page 3 to 6 Templates are missing.")
+        # p3_p6_list = st.session_state.proposal_data.get("p3_p6_template", [])
+        # if p3_p6_list:
+        #     available_p3_p6 = [p for p in p3_p6_list if os.path.exists(p)]
+        #     if available_p3_p6:
+        #         merger_files.extend(available_p3_p6)
+        #     else:
+        #         st.info("Page 3 to 6 Templates are missing.")
+        # else:
+        #     st.info("No Page 3 to 6 Templates found.")
+
+        p3_p6 = st.session_state.proposal_data.get("p3_p6_template")
+        if p3_p6 and os.path.exists(p3_p6):
+            merger_files.append(p3_p6)
         else:
-            st.info("No Page 3 to 6 Templates found.")
+            st.info("Page 3 to 6 Templates are missing.")
 
         # Business Requirement
         br = st.session_state.proposal_data.get("br_template")
@@ -4251,9 +4813,16 @@ def handle_proposal():
         else:
             st.info("Testimonial Template is unavailable.")
 
+        if not merger_files:
+            st.error("No templates were selected or all file paths are missing.")
+            st.stop()
+
         # Validate all files exist before merging
         for file_path in merger_files:
+            print("---------------------------------")
+            print(file_path)
             if file_path is None:
+
                 continue
             if not os.path.exists(file_path):
                 st.error(f"File not found: {file_path}")
@@ -4292,19 +4861,60 @@ def handle_proposal():
         st.markdown("#### ⬇️ Download Final Proposal")
         download_col1, download_col2 = st.columns([2, 1], gap="medium")
 
+        # with download_col1:
+        #     default_filename = f"{st.session_state.proposal_data['client_name'].replace(' ', '_')}_Proposal.pdf"
+        #
+        #     if st.button("✅ Confirm and Upload Proposal"):
+        #         save_generated_file_to_firebase_2(
+        #             temp_merger_path,
+        #             "Proposal",
+        #             bucket,
+        #             "PDF",
+        #             file_upload_details
+        #         )
+        #         st.success("Now you can download the file:")
+        #         # generate_download_link(temp_merger_path, default_filename, "PDF", "Proposal")
+        #         with open(temp_merger_path, "rb") as f:
+        #             file_bytes = f.read()
+        #
+        #         st.download_button(
+        #             label="📥 Download",
+        #             data=file_bytes,
+        #             file_name=default_filename,
+        #             mime="application/pdf",
+        #             use_container_width=True
+        #         )
+
         with download_col1:
             default_filename = f"{st.session_state.proposal_data['client_name'].replace(' ', '_')}_Proposal.pdf"
 
-            if st.button("✅ Confirm and Upload Proposal"):
-                save_generated_file_to_firebase_2(
-                    temp_merger_path,
-                    "Proposal",
-                    bucket,
-                    "PDF",
-                    file_upload_details
+            if "proposal_uploaded" not in st.session_state:
+                st.session_state.proposal_uploaded = False
+
+            if not st.session_state.proposal_uploaded:
+                if st.button("✅ Confirm and Upload Proposal"):
+                    save_generated_file_to_firebase_2(
+                        temp_merger_path,
+                        "Proposal",
+                        bucket,
+                        "PDF",
+                        file_upload_details
+                    )
+                    st.session_state.proposal_uploaded = True
+                    st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
+            else:
+                st.success("Proposal uploaded successfully. You can download it below:")
+
+                with open(temp_merger_path, "rb") as f:
+                    file_bytes = f.read()
+
+                st.download_button(
+                    label="📥 Download Proposal",
+                    data=file_bytes,
+                    file_name=default_filename,
+                    mime="application/pdf",
+                    use_container_width=True
                 )
-                st.success("Now you can download the file:")
-                generate_download_link(temp_merger_path, default_filename, "PDF", "Proposal")
 
         with download_col2:
             if st.button("🔁 Start Over"):
@@ -4312,4 +4922,5 @@ def handle_proposal():
                     if key in st.session_state:
                         del st.session_state[key]
                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
+
 

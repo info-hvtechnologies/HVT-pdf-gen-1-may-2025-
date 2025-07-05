@@ -867,8 +867,18 @@ if selected_option == "Admin Panel":
                                     st.warning("No preview available for this template")
 
                             st.markdown(f"**Uploaded:** {template_data.get('upload_date', 'Unknown')}")
-                            st.markdown(
-                                f"**Download:** [{template_data['original_name']}]({template_data['download_url']})")
+                            # st.markdown(
+                            #     f"**Download:** [{template_data['original_name']}]({template_data['download_url']})")
+                            blob = bucket.blob(template_data['storage_path'])
+
+                            # Generate a signed URL valid for 1 hour
+                            url = blob.generate_signed_url(
+                                version="v4",
+                                expiration=timedelta(hours=1),
+                                method="GET"
+                            )
+
+                            st.markdown(f"**Download:** [{template_data['original_name']}]({url})")
 
             else:
                 # templates = template_ref.collection("templates").order_by("upload_timestamp",
