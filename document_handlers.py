@@ -2812,7 +2812,7 @@ def get_proposal_template_details(firestore_db):
                 continue
 
             file_details = {
-                "name": data.get("name"),
+                "name": data.get("display_name"),
                 "original_name": data.get("original_name"),
                 "doc_type": data.get("doc_type", "Proposal"),
                 "file_type": data.get("file_type"),
@@ -2824,7 +2824,7 @@ def get_proposal_template_details(firestore_db):
                 "storage_path": data.get("storage_path"),
                 "visibility": data.get("visibility"),
                 "description": data.get("description"),
-                "order_number": data.get("order_number"),
+                "order_number": data.get("order"),
                 "is_active": data.get("is_active", True),
                 "template_part": data.get("template_part"),
                 "proposal_section_type": data.get("proposal_section_type"),
@@ -4385,10 +4385,12 @@ def handle_proposal():
                 key="cover_template_select"
             )
             selected_template = cover_options[selected_cover_name]
-
+            # print("Selected Template", selected_template)
             st.subheader("Template Details")
             st.json({
-                "Name": selected_template["name"],
+                # "Name": selected_template["display_name"],
+                "Name": selected_template.get("name", "N/A"),
+
                 "Original Name": selected_template["original_name"],
                 "File Type": selected_template["file_type"],
                 "Size (KB)": selected_template["size_kb"],
@@ -4819,8 +4821,8 @@ def handle_proposal():
 
         # Validate all files exist before merging
         for file_path in merger_files:
-            print("---------------------------------")
-            print(file_path)
+            # print("---------------------------------")
+            # print(file_path)
             if file_path is None:
 
                 continue
@@ -4922,5 +4924,4 @@ def handle_proposal():
                     if key in st.session_state:
                         del st.session_state[key]
                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
-
 
