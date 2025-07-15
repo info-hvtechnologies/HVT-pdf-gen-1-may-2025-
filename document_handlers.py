@@ -4313,6 +4313,26 @@ def align_text_fixed_width(text, total_char_width=12, alignment='center'):
 #                         del st.session_state[key]
 #                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
 
+# import json
+# def show_template(name_key, json_key, label):
+#     template_name = st.session_state.proposal_data.get(name_key, 'Not Selected')
+#     template_json = st.session_state.proposal_data.get(json_key, {})
+#
+#     st.markdown(f"**{label}:** {template_name}")
+#
+#     with st.expander("ℹ️ View Details"):
+#         st.json(template_json)
+
+
+def show_template(name_key, json_key, label):
+    template_name = st.session_state.proposal_data.get(name_key, "Not Selected")
+    template_json = st.session_state.proposal_data.get(json_key, {})
+
+    with st.expander(f"{label}: {str(template_name).split('.')[0]}", expanded=False):
+        st.markdown(f'<div id="{name_key}_expander"></div>', unsafe_allow_html=True)
+        st.json(template_json)
+
+
 
 def handle_proposal():
     st.title("📄 Proposal Form")
@@ -4414,10 +4434,10 @@ def handle_proposal():
                 input_path=template_path,
                 output_path=temp_img_path,
                 replacements={
-                    "{ client_name }": f"{st.session_state.proposal_data['client_name']}",
-                    "{ client_email }": f"{st.session_state.proposal_data['email']}",
-                    "{ client_phone }": f"{st.session_state.proposal_data['phone']}",
-                    "{ client_country }": f"{st.session_state.proposal_data['country']}",
+                    "{ client_name }": f"  {st.session_state.proposal_data['client_name']}",
+                    "{ client_email }": f"  {st.session_state.proposal_data['email']}",
+                    "{ client_phone }": f"  {st.session_state.proposal_data['phone']}",
+                    "{ client_country }": f"  {st.session_state.proposal_data['country']}",
                     "{ date }": f" {st.session_state.proposal_data['proposal_date']}"
                 },
                 y_offset=25
@@ -4432,6 +4452,20 @@ def handle_proposal():
             if st.form_submit_button("Next: Select Business Requirements"):
                 st.session_state.proposal_data["cover_template"] = temp_img_path
                 st.session_state.proposal_data["cover_template_name"] = selected_template["original_name"]
+                st.session_state.proposal_data["cover_template_json"] = {
+
+                    # "Name": selected_template["display_name"],
+                    "Name": selected_template.get("name", "N/A"),
+
+                    "Original Name": selected_template["original_name"],
+                    "File Type": selected_template["file_type"],
+                    "Size (KB)": selected_template["size_kb"],
+                    "Upload Date": selected_template["upload_date"],
+                    "Pages": selected_template["num_pages"],
+                    "Description": selected_template["description"],
+                    "Order Number": selected_template["order_number"],
+                    "Active": selected_template["is_active"]
+                }
                 st.session_state.proposal_form_step = 3
                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
 
@@ -4516,9 +4550,19 @@ def handle_proposal():
             if st.form_submit_button("Next: Select Table of Contents"):
                 st.session_state.proposal_data["br_template"] = temp_br_path
                 st.session_state.proposal_data["br_template_name"] = selected_template["original_name"]
+                st.session_state.proposal_data["br_template_json"] = {
+                    "Name": selected_template["name"],
+                    "Original Name": selected_template["original_name"],
+                    "File Type": selected_template["file_type"],
+                    "Size (KB)": selected_template["size_kb"],
+                    "Upload Date": selected_template["upload_date"],
+                    "Pages": selected_template["num_pages"],
+                    "Description": selected_template["description"],
+                    "Order Number": selected_template["order_number"],
+                    "Active": selected_template["is_active"]
+                }
                 st.session_state.proposal_form_step = 4
                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
-
 
     # Step 4: Table of Contents Selection
     elif st.session_state.proposal_form_step == 4:
@@ -4584,9 +4628,19 @@ def handle_proposal():
             if st.form_submit_button("Next: Select Testimonials Page"):
                 st.session_state.proposal_data["table_of_contents"] = template_path
                 st.session_state.proposal_data["table_of_contents_name"] = selected_template["original_name"]
+                st.session_state.proposal_data["table_of_contents_json"] = {
+                    "Name": selected_template["name"],
+                    "Original Name": selected_template["original_name"],
+                    "File Type": selected_template["file_type"],
+                    "Size (KB)": selected_template["size_kb"],
+                    "Upload Date": selected_template["upload_date"],
+                    "Pages": selected_template["num_pages"],
+                    "Description": selected_template["description"],
+                    "Order Number": selected_template["order_number"],
+                    "Active": selected_template["is_active"]
+                }
                 st.session_state.proposal_form_step = 5
                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
-
 
     # Step 5: Testimonials Selection
     elif st.session_state.proposal_form_step == 5:
@@ -4653,6 +4707,17 @@ def handle_proposal():
                 # st.session_state.proposal_data["table_of_contents"] = template_path
                 st.session_state.proposal_data["testimonials"] = template_path
                 st.session_state.proposal_data["testimonials_name"] = selected_template["original_name"]
+                st.session_state.proposal_data["testimonials_json"] = {
+                    "Name": selected_template["name"],
+                    "Original Name": selected_template["original_name"],
+                    "File Type": selected_template["file_type"],
+                    "Size (KB)": selected_template["size_kb"],
+                    "Upload Date": selected_template["upload_date"],
+                    "Pages": selected_template["num_pages"],
+                    "Description": selected_template["description"],
+                    "Order Number": selected_template["order_number"],
+                    "Active": selected_template["is_active"]
+                }
                 st.session_state.proposal_form_step = 6
                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
 
@@ -4722,26 +4787,40 @@ def handle_proposal():
                 st.session_state.proposal_data["p3_p6_template"] = template_path  # Storing as list for consistency
                 print(st.session_state.proposal_data["p3_p6_template"])
                 st.session_state.proposal_data["p3_p6_template_name"] = selected_template["original_name"]
+                st.session_state.proposal_data["p3_p6_template_json"] = {
+                    "Name": selected_template["name"],
+                    "Original Name": selected_template["original_name"],
+                    "File Type": selected_template["file_type"],
+                    "Size (KB)": selected_template["size_kb"],
+                    "Upload Date": selected_template["upload_date"],
+                    "Pages": selected_template["num_pages"],
+                    "Description": selected_template["description"],
+                    "Order Number": selected_template["order_number"],
+                    "Active": selected_template["is_active"]
+                }
                 st.session_state.proposal_form_step = 7
                 st.experimental_rerun() if LOAD_LOCALLY else st.rerun()
-
-
 
     # Step 7: Final Preview and Download
     elif st.session_state.proposal_form_step == 7:
 
-
         st.subheader("📄 Final Proposal Preview")
         st.button("← Back to Pages 3-6", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 6))
 
-        st.markdown("Selected Templates")
+        st.markdown("**Selected Templates**")
         # st.session_state.proposal_data["cover_template_name"]
-        st.markdown(f"**Cover Template:** {st.session_state.proposal_data['cover_template_name']}")
-        st.markdown(f"**BR Template:** {st.session_state.proposal_data['br_template_name']}")
-        st.markdown(f"**Table of Content Template:** {st.session_state.proposal_data['table_of_contents_name']}")
-        st.markdown(f"**Testimonial Template:** {st.session_state.proposal_data['testimonials_name']}")
-        st.markdown(f"**Page 3-6  Template:** {st.session_state.proposal_data['p3_p6_template_name']}")
-        st.write("PROPOSAL Metadata", st.session_state.proposal_data)
+        # Show all templates
+        show_template("cover_template_name", "cover_template_json", "Cover Template")
+        show_template("br_template_name", "br_template_json", "BR Template")
+        show_template("table_of_contents_name", "table_of_contents_json", "Table of ContentTemplate")
+        show_template("testimonials_name", "testimonials_json", "Testimonial Template")
+        show_template("p3_p6_template_name", "cover_template_json", "Page 3-6 Template")
+        # st.markdown(f"**Cover Template:** {st.session_state.proposal_data['p3_p6_template_name']}")
+        # st.markdown(f"**BR Template:** {st.session_state.proposal_data['br_template_name']}")
+        # st.markdown(f"**Table of Content Template:** {st.session_state.proposal_data['table_of_contents_name']}")
+        # st.markdown(f"**Testimonial Template:** {st.session_state.proposal_data['testimonials_name']}")
+        # st.markdown(f"**Page 3-6  Template:** {st.session_state.proposal_data['p3_p6_template_name']}")
+        # st.write("PROPOSAL Metadata", st.session_state.proposal_data)
 
         st.markdown("""
             <style>
@@ -4888,7 +4967,7 @@ def handle_proposal():
         #         )
 
         with download_col1:
-            default_filename = f"{st.session_state.proposal_data['client_name'].replace(' ', '_')}_Proposal.pdf"
+            default_filename = f"{st.session_state.proposal_data['client_name'].replace(' ', '_')} Consultation Proposal {st.session_state.proposal_data['proposal_date']}.pdf"
 
             if "proposal_uploaded" not in st.session_state:
                 st.session_state.proposal_uploaded = False
