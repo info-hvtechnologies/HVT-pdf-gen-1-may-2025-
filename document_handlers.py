@@ -4475,9 +4475,9 @@ def handle_proposal():
         st.button("← Back to Cover Page", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 2))
 
         # st.subheader("Selected Templates")
-        st.markdown("Selected Templates")
+        st.markdown("**Selected Templates**")
         # st.session_state.proposal_data["cover_template_name"]
-        st.markdown(f"**Cover Template:** {st.session_state.proposal_data['cover_template_name']}")
+        show_template("cover_template_name", "cover_template_json", "Cover Template")
 
         br_templates = [tpl for tpl in all_templates if tpl["proposal_section_type"] == "business_requirement"]
         br_options = {
@@ -4569,10 +4569,11 @@ def handle_proposal():
         st.subheader("Select Table of Contents")
         st.button("← Back to Business Requirements Page", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 3))
 
-        st.markdown("Selected Templates")
+        st.markdown("**Selected Templates**")
         # st.session_state.proposal_data["cover_template_name"]
-        st.markdown(f"**Cover Template:** {st.session_state.proposal_data['cover_template_name']}")
-        st.markdown(f"**BR Template:** {st.session_state.proposal_data['br_template_name']}")
+        show_template("cover_template_name", "cover_template_json", "Cover Template")
+        show_template("br_template_name", "br_template_json", "BR Template")
+
 
 
         toc_templates = [tpl for tpl in all_templates if tpl["proposal_section_type"] == "table_of_contents"]
@@ -4647,11 +4648,11 @@ def handle_proposal():
         st.subheader("Select Testimonials Page")
         st.button("← Back to Table of Contents Page", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 4))
 
-        st.markdown("Selected Templates")
+        st.markdown("**Selected Templates**")
         # st.session_state.proposal_data["cover_template_name"]
-        st.markdown(f"**Cover Template:** {st.session_state.proposal_data['cover_template_name']}")
-        st.markdown(f"**BR Template:** {st.session_state.proposal_data['br_template_name']}")
-        st.markdown(f"**Table of Content Template:** {st.session_state.proposal_data['table_of_contents_name']}")
+        show_template("cover_template_name", "cover_template_json", "Cover Template")
+        show_template("br_template_name", "br_template_json", "BR Template")
+        show_template("table_of_contents_name", "table_of_contents_json", "Table of ContentTemplate")
 
         testimonial_templates = [tpl for tpl in all_templates if tpl["proposal_section_type"] == "testimonials"]
         testimonial_options = {
@@ -4726,12 +4727,16 @@ def handle_proposal():
         st.subheader("Select Pages 3-6")
         st.button("← Back to Testimonials Page", on_click=lambda: setattr(st.session_state, 'proposal_form_step', 5))
 
-        st.markdown("Selected Templates")
+        st.markdown("**Selected Templates**")
         # st.session_state.proposal_data["cover_template_name"]
-        st.markdown(f"**Cover Template:** {st.session_state.proposal_data['cover_template_name']}")
-        st.markdown(f"**BR Template:** {st.session_state.proposal_data['br_template_name']}")
-        st.markdown(f"**Table of Content Template:** {st.session_state.proposal_data['table_of_contents_name']}")
-        st.markdown(f"**Testimonial Template:** {st.session_state.proposal_data['testimonials_name']}")
+        show_template("cover_template_name", "cover_template_json", "Cover Template")
+        show_template("br_template_name", "br_template_json", "BR Template")
+        show_template("table_of_contents_name", "table_of_contents_json", "Table of ContentTemplate")
+        show_template("testimonials_name", "testimonials_json", "Testimonial Template")
+        # st.markdown(f"**Cover Template:** {st.session_state.proposal_data['cover_template_name']}")
+        # st.markdown(f"**BR Template:** {st.session_state.proposal_data['br_template_name']}")
+        # st.markdown(f"**Table of Content Template:** {st.session_state.proposal_data['table_of_contents_name']}")
+        # st.markdown(f"**Testimonial Template:** {st.session_state.proposal_data['testimonials_name']}")
 
         p3_p6_templates = [tpl for tpl in all_templates if tpl["proposal_section_type"] == "page_3_6"]
         p3_p6_options = {
